@@ -1,0 +1,66 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.4.0
+!define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons2
+!define CLOUDOGUURL https://raw.githubusercontent.com/cloudogu/plantuml-cloudogu-sprites/master
+
+!includeurl ICONURL/devicons/java.puml
+!include DEVICONS2/oracle_original.puml
+!include DEVICONS2/nextjs_original.puml
+!includeurl CLOUDOGUURL/tools/prometheus.puml
+!includeurl CLOUDOGUURL/tools/grafana.puml
+AddRelTag("async", $lineStyle = DashedLine())
+
+LAYOUT_WITH_LEGEND()
+SHOW_PERSON_PORTRAIT()
+
+System_Ext(frontend,"Frontend","NextJs","Sistema que solicita o acesso", $sprite = "nextjs_original")
+
+Person(usufinal, "Usuario Final", "Solicita e recebe informações/dados.")
+Rel(frontend, usufinal, "Solicita e recebe informações/dados", "http")
+
+Person(devapp,"Desenvolvedor App","Desenvolve aplicações")
+
+Person(apidev,"API Desenvolvedor","Cria as API's e Publica")
+
+Container(idprovider,"Provedor de identidade","KeyCloack","Processa acesso autorizando ou rejeitando")
+
+ContainerDb(oracle_admp,"DB","Oracle","Armazena as informações, perfis de acesso",$sprite = "oracle_original")
+Rel(idprovider, oracle_admp, "Armazena informações de perfil", $tags = "async")
+
+ContainerDb(oracle_apim,"APIM DB","Oracle","Armazena as informações da devportal, do GTW e Publisher",$sprite = "oracle_original")
+Rel(oracle_apim, devapp, "Publica as API's", "http")
+
+ContainerDb(oracle_keymanager,"Banco de dados","Oracle","Armazena as transações, chaves e tokens de acesso",$sprite = "oracle_original")
+Rel(idprovider, oracle_keymanager, "Armazena chaves e tokens", "oracle Protocol")
+
+'Inicio do Sistema'
+System_Boundary(API_gateway, "ANS WSO2 API Manager"){
+
+Container(apigtw,"API-Gateway","WSO2","Sistema que recebe a solicitação de acesso")
+Rel(apigtw, frontend, "Aplica as regras de Barramento", "http")
+
+Container(keymanager,"Servidor de Recursos (Gerenciador de chaves)","KeyCloack","Processa acesso autorizando ou rejeitando")
+Rel(keymanager, apigtw, "Envia e recebe informações","http")
+Rel(keymanager, frontend, "Envia e recebe informações","http")
+Rel(keymanager, idprovider, "Identifica e prover acessos","http")
+Rel(keymanager, oracle_apim, "Recebe dados do acesso", "oracle Protocol")
+
+Container(apidevportal, "API devportal", "Portal do Desenvolvedor.")
+Rel(apidevportal, devapp, "Desenvolve as aplicações", "http")
+Rel(apidevportal, keymanager, "Desenvolve as aplicações", "http")
+Rel(oracle_apim, apidevportal, "Publica as API's", "http")
+
+Container(apim, "API Publisher", "Responsavel por Gerir e publicar as API's.")
+Rel(apim, apidev, "Publica as API's", "http")
+Rel(apim, keymanager, "Publica as API's", "http")
+
+
+Container(prometheus,"Métricas de acesso","Prometheus","Armazena métricas de acesso", $sprite = "prometheus")
+Rel(prometheus,frontend,"Consume métricas de acesso em","HTTP/TXT")
+Rel(oracle_apim, prometheus, "Persiste metricas", "http")
+
+Container(grafana,"Dashboard de métricas","Grafana","Exibe métricas de acessos", $sprite = "grafana")
+Rel(grafana,prometheus,"Consume métricas de acesso em","PromQL")
+}
+@enduml

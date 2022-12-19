@@ -1,0 +1,49 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.4.0
+!define DEVICONS2 https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons2
+!define CLOUDOGUURL https://raw.githubusercontent.com/cloudogu/plantuml-cloudogu-sprites/master
+
+!includeurl ICONURL/devicons/go.puml
+!includeurl ICONURL/devicons/java.puml
+!include DEVICONS2/oracle_original.puml
+!include DEVICONS2/nextjs_original.puml
+!includeurl CLOUDOGUURL/tools/prometheus.puml
+!includeurl CLOUDOGUURL/tools/grafana.puml
+AddRelTag("async", $lineStyle = DashedLine())
+
+
+SHOW_PERSON_PORTRAIT()
+
+System_Ext(client,"Client","Sistema que solicita o acesso")
+Person(user,"Administrador","Acompanha as transações de acesso")
+Person(superadmin,"Administrador da Gateway","Acompanha as métricas de transações de acesso")
+
+System_Boundary(API_gateway, "ANS Gestor de Acessos e APIs"){
+Container(backend,"Backend","Java","Sistema que recebe a solicitação de acesso", $sprite = "java")
+
+Container(processor,"Processador de acessos","Go","Processa acesso: autorizando ou rejeitando",$sprite = "go")
+
+ContainerDb(oracle_backend,"Banco de dados","Oracle","Armazena as transações de acesso",$sprite = "oracle_original")
+ContainerDb(oracle_processor,"Banco de dados","Oracle","Armazena as transações de acesso",$sprite = "oracle_original")
+
+Container(prometheus,"Métricas de acesso","Prometheus","Armazena métricas de acesso", $sprite = "prometheus")
+Rel(prometheus,processor,"Consume métricas de acesso em","HTTP/TXT")
+
+Container(grafana,"Dashboard de métricas","Grafana","Exibe métricas de acessos", $sprite = "grafana")
+Rel(grafana,prometheus,"Consume métricas de acesso em","PromQL")
+
+Rel(superadmin,grafana,"Consume métricas de acesso em","HTTPS")
+
+Container(frontend,"Painel de Controle","Next.js","Monitora as transações de acesso e seus status", $sprite = "nextjs_original")
+Rel(user,frontend,"solicita dados das transações em","HTTPS")
+Rel(frontend,backend,"Recupera informações de acesso","HTTPS/JSON")
+
+Rel(processor,oracle_processor,"Recebe dados do acesso","oracle Protocol")
+
+Rel(backend,oracle_backend,"Recebe dados do acesso","oracle Protocol")
+Rel(client,backend,"solicita acesso em","HTTP/JSON")
+Rel(backend,processor,"envia dados de acesso para","Através do Kafka pelo tópico transactions",$tags = "async")
+Rel(processor,backend,"envia resultado da transação","Através do Kafka pelo tópico transactions_result",$tags = "async")
+}
+@enduml

@@ -1,0 +1,47 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+' uncomment the following line and comment the first to use locally
+' !include C4_Context.puml
+
+LAYOUT_TOP_DOWN()
+LAYOUT_WITH_LEGEND()
+SHOW_PERSON_PORTRAIT()
+
+Person(apidev, "API Desenvolvedor", "Um desenvolvedor de API's.")
+
+Person(devapp, "Desenvolve a aplicação", "Um desenvolvedor de Aplicações.")
+
+Person(usufinal, "Usuario Final", "Solicita e recebe informações/dados.")
+
+System_Boundary(ANSAPIM , "WSO2 API Manager") {
+
+    System(apistore, "API Store", "Portal do Desenvolvedor.")
+
+    System(apipub, "Publicador de API's", "Responsavel por publicar as API's.")
+
+    System(apigtw, "Gateway de API's", "Responsavel por rotear as API's.")
+
+    System(keymanager, "Servidor de Recursos (Gerenciador de chaves)")
+}
+
+System(keyck, "KeyCloack", "Provedor de identidade.")
+
+System(keyckapp, "Aplicação Cliente", "Ponto de entrada do cliente.")
+
+System(oracle_backend,"KeyToken","Armazena as chaves e tokens das transações de acesso")
+
+System(oracle_backend,"Perfis de acesso","Armazena as chaves e os tokens dos perfis de acesso")
+
+System(oracle_backend,"APIM","Banco e dados do genciador de API's")
+
+Rel(apipub, apidev, "Publica as API's", "http")
+
+Rel(apistore, devapp, "Desenvolve as aplicações", "http")
+
+Rel(keymanager, keyckapp, "Gerencia as chaves de acesso")
+
+Rel(keymanager, keyck, "Prover identidade de acesso")
+
+Rel(apigtw, usufinal, "Usuario final acessa e receber informações, dados")
+
+@enduml
